@@ -18,7 +18,7 @@ class Direction {
     this._name = name;
   }
 
-  addLevel(level: Level) {
+  addLevel(level: Level): void  {
     this.levels.push(level);
   }
 }
@@ -41,7 +41,7 @@ class Level {
     return this._program;
   }
 
-  addGroup(group: Group) {
+  addGroup(group: Group): void {
     this.groups.push(group);
   }
 }
@@ -51,7 +51,7 @@ class Group {
   _directionName: string;
   _levelName: string;
 
-  get students() {
+  get students(): Student[] {
     return this._students;
   }
 
@@ -60,7 +60,7 @@ class Group {
     this._levelName = levelName;
   }
 
-  addStudent(student: Student) {
+  addStudent(student: Student) : void {
     this._students.push(student);
   }
 
@@ -98,11 +98,11 @@ class Student {
     return new Date().getFullYear() - this._birthYear;
   }
 
-  setGrade(subject: string, grade: number) {
+  setGrade(subject: string, grade: number): void {
     this.grades[subject] = grade;
   }
 
-  markAttendance(present: boolean) {
+  markAttendance(present: boolean): void {
     this.attendance.push(present);
   }
 
