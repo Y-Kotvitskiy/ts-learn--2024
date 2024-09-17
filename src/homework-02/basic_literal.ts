@@ -1,24 +1,38 @@
+type Lecturer = {
+  name: string;
+  surname: string;
+  position: string;
+  company: string;
+  experience: number;
+  courses: any[];
+  contacts: any[];
+};
+
+type Areas = Area[];
+type Lecturers = Lecturer[];
+type Levels = Level[];
+
 class School {
   // implement 'add area', 'remove area', 'add lecturer', and 'remove lecturer' methods
 
-  _areas = [];
-  _lecturers = []; // Name, surname, position, company, experience, courses, contacts
+  _areas: Areas = [];
+  _lecturers: Lecturers = []; // Name, surname, position, company, experience, courses, contacts
 
-  get areas() {
-    this._areas;
+  get areas(): Areas {
+    return this._areas;
   }
 
-  get lecturers() {
-    this._lecturers;
+  get lecturers(): Lecturers {
+    return this._lecturers;
   }
 }
 
 class Area {
   // implement getters for fields and 'add/remove level' methods
-  _levels = [];
-  _name;
+  _levels: Levels = [];
+  _name: string;
 
-  constructor(name) {
+  constructor(name: string) {
     this._name = name;
   }
 }
@@ -53,39 +67,60 @@ class Group {
   }
 }
 
+type Grade = { workname: string; mark: number };
+type Visit = { lesson: string; present: boolean };
+
 class Student {
   // implement 'set grade' and 'set visit' methods
 
-  _firstName;
-  _lastName;
-  _birthYear;
-  _grades = []; // workName: mark
-  _visits = []; // lesson: present
+  _firstName: string;
+  _lastName: string;
+  _birthYear: number;
+  _grades: Grade[] = []; // workName: mark
+  _visits: Visit[] = []; // lesson: present
 
-  constructor(firstName, lastName, birthYear) {
+  constructor(firstName: string, lastName: string, birthYear: number) {
     this._firstName = firstName;
     this._lastName = lastName;
     this._birthYear = birthYear;
   }
 
-  get fullName() {
+  get fullName(): string {
     return `${this._lastName} ${this._firstName}`;
   }
 
-  set fullName(value) {
+  set fullName(value: string) {
     [this._lastName, this._firstName] = value.split(' ');
   }
 
-  get age() {
+  get age(): number {
     return new Date().getFullYear() - this._birthYear;
   }
 
-  getPerformanceRating() {
+  setGrade(grade: Grade): void {
+    const lastGrade: Grade | undefined = this._grades.find(currGrade => currGrade.workname === grade.workname);
+    if (lastGrade) {
+      lastGrade.mark = grade.mark;
+    } else {
+      this._grades.push(grade);
+    }
+  }
+
+  setVisit(visit: Visit): void {
+    const lastVisit: Visit | undefined = this._visits.find(currVisit => currVisit.lesson === visit.lesson);
+    if (lastVisit) {
+      lastVisit.present = visit.present;
+    } else {
+      this._visits.push(visit);
+    }
+  }
+
+  getPerformanceRating(): number {
     const gradeValues = Object.values(this._grades);
 
     if (!gradeValues.length) return 0;
 
-    const averageGrade = gradeValues.reduce((sum, grade) => sum + grade, 0) / gradeValues.length;
+    const averageGrade = gradeValues.reduce((sum, grade) => sum + grade.mark, 0) / gradeValues.length;
     const attendancePercentage = (this._visits.filter(present => present).length / this._visits.length) * 100;
 
     return (averageGrade + attendancePercentage) / 2;
