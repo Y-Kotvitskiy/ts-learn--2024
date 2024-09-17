@@ -51,14 +51,15 @@ class Level {
 
 class Group {
   // implement getters for fields and 'add/remove student' and 'set status' methods
+  _directionName: string; 
+  _levelName: string;
+  _area?: Area ;
+  _status?: string;
+  _students: Student[] = []; // Modify the array so that it has a valid toSorted method*
 
-  _area;
-  _status;
-  _students = []; // Modify the array so that it has a valid toSorted method*
-
-  constructor(directionName, levelName) {
-    this.directionName = directionName;
-    this.levelName = levelName;
+  constructor(directionName: string, levelName: string) {
+    this._directionName = directionName;
+    this._levelName = levelName;
   }
 
   showPerformance() {
