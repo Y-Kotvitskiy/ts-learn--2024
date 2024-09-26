@@ -37,18 +37,25 @@ abstract class BaseFigure implements IBaseFigure {
   ) {}
 
   abstract calculateArea(): number;
+
+  protected checkLength(value: number): number {
+    if (value < 0) {
+      throw new Error(`Lenth must be > 0, but get ${value}`);
+    }
+    return value;
+  }
 }
 
 class Circle extends BaseFigure implements ICircle {
-  private _radius: number;
+  private _radius!: number;
 
   constructor(name: string, color: Colors, radius: number) {
     super(name, color);
-    this._radius = radius;
+    this.radius = radius;
   }
 
   set radius(value: number) {
-    this._radius = value;
+    this._radius = this.checkLength(value);
   }
 
   get radius(): number {
@@ -61,12 +68,18 @@ class Circle extends BaseFigure implements ICircle {
 }
 
 class Square extends BaseFigure implements ISquare {
-  constructor(
-    name: string,
-    color: Colors,
-    public sideA: number
-  ) {
+  public _sideA!: number;
+
+  constructor(name: string, color: Colors, sideA: number) {
     super(name, color);
+  }
+
+  set sideA(value: number) {
+    this._sideA = this.checkLength(value);
+  }
+
+  get sideA(): number {
+    return this._sideA;
   }
 
   public calculateArea(): number {
@@ -79,17 +92,33 @@ class Square extends BaseFigure implements ISquare {
 }
 
 class Rectangle extends BaseFigure implements IRectangle {
-  constructor(
-    name: string,
-    color: Colors,
-    public sideA: number,
-    public sideB: number
-  ) {
+  private _sideA!: number;
+  private _sideB!: number;
+
+  constructor(name: string, color: Colors, sideA: number, sideB: number) {
     super(name, color);
+    this.sideA = sideA;
+    this.sideB = sideB;
+  }
+
+  set sideA(value: number) {
+    this._sideA = this.checkLength(value);
+  }
+
+  get sideA() {
+    return this._sideA;
+  }
+
+  set sideB(value: number) {
+    this._sideB = this.checkLength(value);
+  }
+
+  get sideB() {
+    return this._sideB;
   }
 
   public calculateArea(): number {
-    return Math.sqrt(this.sideA);
+    return this._sideA * this._sideB;
   }
 
   public print(): string {
@@ -98,14 +127,49 @@ class Rectangle extends BaseFigure implements IRectangle {
 }
 
 class Triangle extends BaseFigure implements ITriangle {
-  constructor(
-    name: string,
-    color: Colors,
-    public sideA: number,
-    public sideB: number,
-    public sideC: number
-  ) {
+  private _sideA: number = 0;
+  private _sideB: number = 0;
+  private _sideC: number = 0;
+
+  constructor(name: string, color: Colors, sideA: number, sideB: number, sideC: number) {
     super(name, color);
+    this.sideA = sideA;
+    this.sideB = sideB;
+    this.sideC = sideC;
+  }
+
+  private exists(): boolean {
+    if (
+      !(this._sideA && this._sideB && this._sideC) ||
+      2 * Math.max(this._sideA, this._sideB, this._sideC) >= this._sideA + this._sideB + this._sideC
+    ) {
+      return true;
+    }
+    throw new Error(`Triangle with sides ${this._sideA} ${this._sideB} ${this._sideC} does not exists`);
+  }
+
+  set sideA(value: number) {
+    this._sideA = this.checkLength(value);
+  }
+
+  get sideA() {
+    return this._sideA;
+  }
+
+  set sideB(value: number) {
+    this._sideB = this.checkLength(value);
+  }
+
+  get sideB() {
+    return this._sideB;
+  }
+
+  set sideC(value: number) {
+    this._sideB = this.checkLength(value);
+  }
+
+  get sideC() {
+    return this._sideB;
   }
 
   public calculateArea(): number {
