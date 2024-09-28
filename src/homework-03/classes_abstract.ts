@@ -150,6 +150,7 @@ class Triangle extends BaseFigure implements ITriangle {
 
   set sideA(value: number) {
     this._sideA = this.checkLength(value);
+    this.exists();
   }
 
   get sideA() {
@@ -158,6 +159,7 @@ class Triangle extends BaseFigure implements ITriangle {
 
   set sideB(value: number) {
     this._sideB = this.checkLength(value);
+    this.exists();
   }
 
   get sideB() {
@@ -166,6 +168,7 @@ class Triangle extends BaseFigure implements ITriangle {
 
   set sideC(value: number) {
     this._sideB = this.checkLength(value);
+    this.exists();
   }
 
   get sideC() {
