@@ -3,8 +3,7 @@
 // Наприклад, тип значення для кожного ключа може бути число | рядок.
 
 interface ITask1 {
-  [key: number]: string;
-  [key: string]: string;
+  [key: number]: string | number;
 }
 
 // 2.
