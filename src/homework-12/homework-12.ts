@@ -5,10 +5,6 @@ interface IMovie {
   awards: string; // список нагород
 }
 
-interface IMovies {
-  getFilteredMovies(): IMovie[];
-}
-
 enum GridFilterTypeEnum {
   Match = 'match',
   Range = 'range',
@@ -41,6 +37,24 @@ type EqualFilterSetValues<T extends EqualFilteredField> = {
   values: EqualFilterValue<T>[];
 };
 
+interface IMovies {
+  applySearchValue(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match | GridFilterTypeEnum.Range>): void;
+  applyFiltersValue(equalFilter: EqualFilterSetValues<'rate' | 'awards'>): void;
+  getFilteredMovies(): IMovie[];
+}
+
+interface IMoviesCategory {
+  name: string; //   назва,
+  movies: IMovies;
+}
+
+interface ICategory {
+  applySearchValue(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match>): void;
+  applySearchMovies(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match | GridFilterTypeEnum.Range>): void;
+  applyFiltersMovies(equalFilter: EqualFilterSetValues<'rate' | 'awards'>): void;
+  getFilteredMovies(): IMoviesCategory[];
+}
+
 abstract class Movies implements IMovies {
   private movies: IMovie[] = [];
   private gridFilterValues: GreedFilterValue<GridFilterTypeEnum.Match | GridFilterTypeEnum.Range>[] = [];
@@ -50,12 +64,7 @@ abstract class Movies implements IMovies {
   abstract getFilteredMovies(): IMovie[];
 }
 
-interface IMoviesCategory {
-  name: string; //   назва,
-  movies: Movies;
-}
-
-abstract class Categories {
+abstract class Categories implements ICategory {
   private categoryMovies: IMoviesCategory[] = [];
   private gridFilterValues: GreedFilterValue<GridFilterTypeEnum.Match>[] = [];
   abstract applySearchValue(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match>): void;
