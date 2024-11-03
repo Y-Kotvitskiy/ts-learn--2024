@@ -1,7 +1,7 @@
 interface IMovie {
   name: string; //   назва,
   year: number; //  рік випуску,
-  rate: string; // рейтинг,
+  rate: number; // рейтинг,
   awards: string[]; // список нагород
 }
 
@@ -37,10 +37,10 @@ type EqualFilterSetValues = FilerType<GridFilterTypeEnum.Values>;
 interface IMovies {
   applySearchValue(gridFilter: GreedFilterValue<SearchFilterTypes>): void;
   applyFiltersValue(equalFilter: EqualFilterSetValues): void;
-  getFilteredByName(): IMovie[];
-  getFilteredByYear(): IMovie[];
-  getFilteredByRate(): IMovie[];
-  getFilteredByAwards(): IMovie[];
+  filteredByName(): IMovie[];
+  filteredByYear(): IMovie[];
+  filteredByRate(): IMovie[];
+  filteredByAwards(): IMovie[];
 }
 
 interface IMoviesCategory {
@@ -50,7 +50,7 @@ interface IMoviesCategory {
 
 interface ICategory {
   applySearchMovies(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match>): void;
-  getFilteredByName(): IMoviesCategory[];
+  filteredByName(): IMoviesCategory[];
 }
 
 class Movies implements IMovies {
@@ -60,23 +60,33 @@ class Movies implements IMovies {
     private equalFilterValues: EqualFilterSetValues = []
   ) {}
 
-  applySearchValue(gridFilter: GreedFilterValue<SearchFilterTypes>): void {
+  public applySearchValue(gridFilter: GreedFilterValue<SearchFilterTypes>): void {
     this.gridFilterValues[gridFilter.type] = gridFilter;
   }
 
-  applyFiltersValue(equalFilter: EqualFilterSetValues): void {
+  public applyFiltersValue(equalFilter: EqualFilterSetValues): void {
     this.equalFilterValues = equalFilter;
   }
 
-  getFilteredByName(): IMovie[] {
-    if (!this.gridFilterValues.match) {
-      return [];
-    }
-    const filter = this.gridFilterValues.match.filter.toString().toLocaleLowerCase();
-    return this.movies.filter(movie => movie.name.toLowerCase().includes(filter));
+  private filterByValues(movies: IMovie[], fieldName: keyof IMovie): IMovie[] {
+    return movies.filter(movie => this.equalFilterValues.find(value => value == movie[fieldName].toString()));
   }
 
-  getFilteredByYear(): IMovie[] {
+  public filteredByName(): IMovie[] {
+    let result: IMovie[] = this.movies;
+
+    if (this.gridFilterValues.match) {
+      const filter = this.gridFilterValues.match.filter.toString().toLocaleLowerCase();
+      result = this.movies.filter(movie => movie.name.toLowerCase().includes(filter));
+    }
+
+    if (this.equalFilterValues.length > 0) {
+      result = this.filterByValues(result, 'name');
+    }
+    return result;
+  }
+
+  filteredByYear(): IMovie[] {
     if (!this.gridFilterValues.range) {
       return [];
     }
@@ -91,26 +101,26 @@ class Movies implements IMovies {
     }
   }
 
-  getFilteredByRate(): IMovie[] {
-    if (this.equalFilterValues.length) {
-      return this.movies.filter(movie => this.equalFilterValues.find(value => value === movie.rate));
+  filteredByRate(): IMovie[] {
+    if (this.gridFilterValues.range) {
+      const rangeFilter: GreedFilterValue<GridFilterTypeEnum.Range> = this.gridFilterValues
+        .range as GreedFilterValue<GridFilterTypeEnum.Range>;
+      if (rangeFilter.filterTo) {
+        const filterTo: number = rangeFilter.filterTo as number;
+        return this.movies.filter(movie => movie.rate >= rangeFilter.filter && movie.rate <= filterTo);
+      } else {
+        return this.movies.filter(movie => movie.rate == rangeFilter.filter);
+      }
     }
     return [];
   }
 
-  getFilteredByAwards(): IMovie[] {
-    throw new Error('Method not implemented.');
+  filteredByAwards(): IMovie[] {
+    if (this.equalFilterValues.length > 0) {
+      return this.filterByValues(this.movies, 'awards');
+    }
+    return [];
   }
-}
-
-enum Awards {
-  AmericanSociety = 'American Society of Cinematographers',
-  MTV = 'MTV Movie & TV Award for Best Villain',
-}
-
-enum Rate {
-  R17 = '17',
-  PG13 = '13',
 }
 
 class Categories implements ICategory {
@@ -122,7 +132,7 @@ class Categories implements ICategory {
     this.gridFilterValues[gridFilter.type] = gridFilter;
   }
 
-  public getFilteredByName(): IMoviesCategory[] {
+  public filteredByName(): IMoviesCategory[] {
     if (!this.gridFilterValues.match) {
       return [];
     }
@@ -131,18 +141,23 @@ class Categories implements ICategory {
   }
 }
 
+enum Awards {
+  AmericanSociety = 'American Society of Cinematographers',
+  MTV = 'MTV Movie & TV Award for Best Villain',
+}
+
 const moviesTest = () => {
   const movies = new Movies([
     {
       name: 'The Shawshank Redemption',
       year: 1994,
-      rate: Rate.R17,
+      rate: 17,
       awards: [Awards.AmericanSociety],
     },
     {
       name: 'The Dark Knight',
       year: 2008,
-      rate: Rate.PG13,
+      rate: 13,
       awards: [Awards.MTV],
     },
   ]);
@@ -158,34 +173,49 @@ const moviesTest = () => {
     filterTo: 2000,
   });
 
-  console.log('getFilteredByYear', movies.getFilteredByYear());
+  console.log('filteredByYear: 1990-2000', movies.filteredByYear());
 
   movies.applySearchValue({
     type: GridFilterTypeEnum.Range,
     filter: 2008,
   });
 
-  console.log('getFilteredByYear', movies.getFilteredByYear());
+  console.log('filteredByYear: 2008', movies.filteredByYear());
 
-  movies.applyFiltersValue([Rate.R17]);
+  movies.applySearchValue({
+    type: GridFilterTypeEnum.Range,
+    filter: 13,
+    filterTo: 17,
+  });
 
-  console.log('getFilteredByRate', movies.getFilteredByRate());
+  console.log('filteredByRate: 13-17', movies.filteredByRate());
+
+  movies.applySearchValue({
+    type: GridFilterTypeEnum.Range,
+    filter: 13,
+  });
+
+  console.log('filteredByRate: 13', movies.filteredByRate());
+
+  movies.applyFiltersValue([Awards.AmericanSociety]);
+
+  console.log(`filteredByAwards: ${Awards.AmericanSociety}`, movies.filteredByAwards());
 };
 
-// moviesTest();
+moviesTest();
 
 const categoryTest = () => {
   const movies = new Movies([
     {
       name: 'The Shawshank Redemption',
       year: 1994,
-      rate: Rate.R17,
+      rate: 17,
       awards: [Awards.AmericanSociety],
     },
     {
       name: 'The Dark Knight',
       year: 2008,
-      rate: Rate.PG13,
+      rate: 13,
       awards: [Awards.MTV],
     },
   ]);
@@ -196,14 +226,14 @@ const categoryTest = () => {
     filter: 'Top',
   });
 
-  console.log(`Top`, categories.getFilteredByName());
+  console.log(`filteredByName: Top`, categories.filteredByName());
 
   categories.applySearchMovies({
     type: GridFilterTypeEnum.Match,
     filter: 'Tops',
   });
 
-  console.log(`Tops`, categories.getFilteredByName());
+  console.log(`filteredByName: Tops`, categories.filteredByName());
 };
 
 categoryTest();
