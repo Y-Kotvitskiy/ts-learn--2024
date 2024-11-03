@@ -30,6 +30,8 @@ type GreedFilterValue<T extends SearchFilterTypes> = {
 
 type GreedFilterValues = Partial<Record<SearchFilterTypes, GreedFilterValue<SearchFilterTypes>>>;
 
+type CategoryFilterValues = Partial<Record<SearchFilterTypes, GreedFilterValue<GridFilterTypeEnum.Match>>>;
+
 type EqualFilterSetValues = FilerType<GridFilterTypeEnum.Values>;
 
 interface IMovies {
@@ -47,8 +49,7 @@ interface IMoviesCategory {
 }
 
 interface ICategory {
-  applySearchMovies(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match | GridFilterTypeEnum.Range>): void;
-  applyFiltersMovies(equalFilter: EqualFilterSetValues): void;
+  applySearchMovies(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match>): void;
   getFilteredByName(): IMoviesCategory[];
 }
 
@@ -112,56 +113,97 @@ enum Rate {
   PG13 = '13',
 }
 
-const movies = new Movies([
-  {
-    name: 'The Shawshank Redemption',
-    year: 1994,
-    rate: Rate.R17,
-    awards: [Awards.AmericanSociety],
-  },
-  {
-    name: 'The Dark Knight',
-    year: 2008,
-    rate: Rate.PG13,
-    awards: [Awards.MTV],
-  },
-]);
+class Categories implements ICategory {
+  constructor(
+    private moviesCategories: IMoviesCategory[],
+    private gridFilterValues: CategoryFilterValues = {}
+  ) {}
+  applySearchMovies(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match>): void {
+    this.gridFilterValues[gridFilter.type] = gridFilter;
+  }
 
-movies.applySearchValue({
-  type: GridFilterTypeEnum.Match,
-  filter: 'The Shawshank Redemption',
-});
+  public getFilteredByName(): IMoviesCategory[] {
+    if (!this.gridFilterValues.match) {
+      return [];
+    }
+    const filter = this.gridFilterValues.match.filter.toString().toLocaleLowerCase();
+    return this.moviesCategories.filter(moviesCategory => moviesCategory.name.toLowerCase().includes(filter));
+  }
+}
 
-movies.applySearchValue({
-  type: GridFilterTypeEnum.Range,
-  filter: 1990,
-  filterTo: 2000,
-});
+const moviesTest = () => {
+  const movies = new Movies([
+    {
+      name: 'The Shawshank Redemption',
+      year: 1994,
+      rate: Rate.R17,
+      awards: [Awards.AmericanSociety],
+    },
+    {
+      name: 'The Dark Knight',
+      year: 2008,
+      rate: Rate.PG13,
+      awards: [Awards.MTV],
+    },
+  ]);
 
-console.log('getFilteredByYear', movies.getFilteredByYear());
+  movies.applySearchValue({
+    type: GridFilterTypeEnum.Match,
+    filter: 'The Shawshank Redemption',
+  });
 
-movies.applySearchValue({
-  type: GridFilterTypeEnum.Range,
-  filter: 2008,
-});
+  movies.applySearchValue({
+    type: GridFilterTypeEnum.Range,
+    filter: 1990,
+    filterTo: 2000,
+  });
 
-console.log('getFilteredByYear', movies.getFilteredByYear());
+  console.log('getFilteredByYear', movies.getFilteredByYear());
 
-movies.applyFiltersValue([Rate.R17]);
+  movies.applySearchValue({
+    type: GridFilterTypeEnum.Range,
+    filter: 2008,
+  });
 
-console.log('getFilteredByRate', movies.getFilteredByRate());
+  console.log('getFilteredByYear', movies.getFilteredByYear());
 
-// abstract class Categories implements ICategory {
-//   private categoryMovies: IMoviesCategory[] = [];
-//   private gridFilterValues: GreedFilterValue<GridFilterTypeEnum.Match>[] = [];
-//   abstract applySearchValue(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match>): void;
+  movies.applyFiltersValue([Rate.R17]);
 
-//   public applySearchMovies(gridFilter: GreedFilterValue<GridFilterTypeEnum.Match | GridFilterTypeEnum.Range>): void {
-//     this.categoryMovies.forEach(moviesCatefory => moviesCatefory.movies.applySearchValue(gridFilter));
-//   }
+  console.log('getFilteredByRate', movies.getFilteredByRate());
+};
 
-//   public applyFiltersMovies(equalFilter: EqualFilterSetValues<'rate' | 'awards'>): void {
-//     this.categoryMovies.forEach(moviesCatefory => moviesCatefory.movies.applyFiltersValue(equalFilter));
-//   }
-//   abstract getFilteredMovies(): IMoviesCategory[];
-// }
+// moviesTest();
+
+const categoryTest = () => {
+  const movies = new Movies([
+    {
+      name: 'The Shawshank Redemption',
+      year: 1994,
+      rate: Rate.R17,
+      awards: [Awards.AmericanSociety],
+    },
+    {
+      name: 'The Dark Knight',
+      year: 2008,
+      rate: Rate.PG13,
+      awards: [Awards.MTV],
+    },
+  ]);
+
+  const categories = new Categories([{ name: 'Top movies', movies }]);
+  categories.applySearchMovies({
+    type: GridFilterTypeEnum.Match,
+    filter: 'Top',
+  });
+
+  console.log(`Top`, categories.getFilteredByName());
+
+  categories.applySearchMovies({
+    type: GridFilterTypeEnum.Match,
+    filter: 'Tops',
+  });
+
+  console.log(`Tops`, categories.getFilteredByName());
+};
+
+categoryTest();
