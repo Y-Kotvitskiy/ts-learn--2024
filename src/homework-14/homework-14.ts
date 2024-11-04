@@ -5,28 +5,112 @@ enum noteType {
   confirmation = 'confirmation',
 }
 
-interface IEditNote {
-  name?: string;
-  content?: string;
-}
-
 interface ICreateNote {
   name: string;
   content: string;
-  type: noteType;
 }
 
 interface INote extends ICreateNote {
   id: string;
   dateCreate: Date;
-  dateModify: Date;
+  dateModify: Date | null;
   done: boolean;
+}
+
+interface IEditNote {
+  name?: INote['name'];
+  content?: INote['content'];
+}
+
+abstract class BaseNote implements INote {
+  readonly id: string = '';
+  protected _name: string;
+  protected _content: string;
+  protected _done: boolean = false;
+  readonly dateCreate: Date;
+  protected _dateModify: Date | null = null;
+
+  constructor(name: string, content: string) {
+    if (!name) throw new Error(`cannot create note with empty name`);
+    if (!content) throw new Error(`cannot create note with empty content`);
+    (this.id = uuidv4()), (this._name = name);
+    this._content = content;
+    this.dateCreate = new Date();
+  }
+
+  public get dateModify(): Date | null {
+    return this._dateModify;
+  }
+
+  public get name(): string {
+    return this._name;
+  }
+
+  protected set name(value: string) {
+    this._name = value;
+  }
+
+  public get content(): string {
+    return this._content;
+  }
+
+  protected set content(value: string) {
+    this._content = value;
+  }
+
+  public get done(): boolean {
+    return this._done;
+  }
+
+  public abstract update(payload: IEditNote): boolean;
+
+  public makeDone(): void {
+    this._done = true;
+  }
+}
+
+class DefaultNote extends BaseNote {
+  public update(payload: IEditNote): boolean {
+    let result = false;
+    let property: keyof IEditNote;
+    for (property in payload) {
+      if (payload[property]) {
+        this[property] = payload[property]!;
+        this._dateModify = new Date();
+        result = true;
+      }
+    }
+    return result;
+  }
+}
+
+class ConvifmNote extends BaseNote {
+  public update(payload: IEditNote): boolean;
+  public update(payload: IEditNote, confirm: boolean): boolean;
+  public update(payload: IEditNote, confirm?: boolean): boolean {
+    if (confirm === undefined) {
+      throw new Error(`Upload shold be confirmed! Use method update(payload: IEditNote, confirm: boolean)`);
+    }
+    if (confirm) {
+      let result = false;
+      let property: keyof IEditNote;
+      for (property in payload) {
+        if (payload[property]) {
+          this[property] = payload[property]!;
+          this._dateModify = new Date();
+          result = true;
+        }
+      }
+      return result;
+    }
+    return false;
+  }
 }
 
 // У списку нотаток повинні бути методи для додавання нового запису, видалення, редагування та отримання повної інформації про нотатку за ідентифікаторо
 
 interface ITodoList {
-  notes: INote[];
+  notes: BaseNote[];
   addNote(note: ICreateNote): string;
   deleteNote(id: string): boolean;
   info(id: string): string | undefined;
@@ -36,30 +120,23 @@ interface ITodoList {
 }
 
 class TodoList implements ITodoList {
-  protected _notes: Partial<Record<string, INote>> = {};
+  protected _notes: Partial<Record<string, BaseNote>> = {};
 
-  public get notes(): INote[] {
-    const result: INote[] = [];
+  public get notes(): BaseNote[] {
+    const result: BaseNote[] = [];
     for (const noteId in this._notes) {
-      const note = this._notes[noteId] as INote;
-      result.push({ ...note });
+      const note = this._notes[noteId] as BaseNote;
+      result.push(note);
     }
     return result;
   }
 
-  addNote(note: ICreateNote): string {
-    if (!note.name) throw new Error(`cannot create note with empty name`);
-    if (!note.content) throw new Error(`cannot create note with empty content`);
-    const dateCreate = new Date();
-    const newNote: INote = {
-      id: uuidv4(),
-      ...note,
-      dateCreate: dateCreate,
-      dateModify: dateCreate,
-      done: false,
-    };
-    this._notes[newNote.id] = newNote;
-    return newNote.id;
+  addNote(note: BaseNote): string {
+    if (this._notes[note.id]) {
+      return '';
+    }
+    this._notes[note.id] = note;
+    return note.id;
   }
 
   deleteNote(id: string): boolean {
@@ -83,19 +160,21 @@ done: ${note.done}`;
     return undefined;
   }
 
-  edit(id: string, editPropertise: IEditNote): boolean {
+  edit(id: string, editPropertise: IEditNote): boolean;
+  edit(id: string, editPropertise: IEditNote, confirm: boolean): boolean;
+  edit(id: string, editPropertise: IEditNote, confirm?: boolean): boolean {
     const note = this._notes[id];
     if (!note) {
       return false;
     }
-    let property: keyof IEditNote;
-    for (property in editPropertise) {
-      if (editPropertise[property]) {
-        note[property] = editPropertise[property] as string;
-        note.dateModify = new Date();
-      }
+    if (confirm === undefined) {
+      return note.update(editPropertise);
     }
-    return true;
+    if (note instanceof ConvifmNote) {
+      return note.update(editPropertise, confirm);
+    } else {
+      throw new Error('Use ConvifmNote class instatnce!');
+    }
   }
 
   makeDone(id: string): boolean {
@@ -103,7 +182,7 @@ done: ${note.done}`;
     if (!note) {
       return false;
     }
-    note.done = true;
+    note.makeDone();
     return true;
   }
 
@@ -150,7 +229,7 @@ class TodoSortList extends TodoList {
   public sortedStatus() {
     let result = this.notes;
     result = result.sort((a, b) => {
-      return Number(a.type === noteType.confirmation) - Number(b.type === noteType.confirmation);
+      return Number(a.done) - Number(b.done);
     });
     return result;
   }
@@ -166,7 +245,7 @@ class TodoSortList extends TodoList {
 
 const test = () => {
   const todoList = new TodoList();
-  const noteId = todoList.addNote({ name: 'start', content: 'some description', type: noteType.default });
+  const noteId = todoList.addNote(new DefaultNote('start', 'some description'));
   console.log(`not done:`, todoList.countNotDone());
   console.log(`notes:`, todoList.notes);
   todoList.edit(noteId, { name: `new name` });
@@ -174,16 +253,17 @@ const test = () => {
   console.log(`note info:`, '\n--\n' + todoList.info(noteId));
 
   const todoSearch = new TodoSearchList();
-  todoSearch.addNote({ name: '#1', content: 'some description #1', type: noteType.default });
-  todoSearch.addNote({ name: '#2', content: 'some description #2', type: noteType.confirmation });
+  todoSearch.addNote(new DefaultNote('#1', 'some description #1'));
+  todoSearch.addNote(new DefaultNote('#2', 'some description #2'));
   console.log('find name #1:', todoSearch.searchNames('#1'));
   console.log('find content #2:', todoSearch.searchContent('#2'));
 
   const todoSorted = new TodoSortList();
-  todoSorted.addNote({ name: '#3', content: 'some description', type: noteType.default });
-  todoSorted.addNote({ name: '#2', content: 'some description', type: noteType.confirmation });
+  const sortId = todoSorted.addNote(new DefaultNote('#3', 'some description'));
+  todoSorted.makeDone(sortId);
+  todoSorted.addNote(new DefaultNote('#2', 'some description'));
   setTimeout(() => {
-    todoSorted.addNote({ name: '#1', content: 'some description', type: noteType.default });
+    todoSorted.addNote(new DefaultNote('#1', 'some description'));
     console.log('sorted status: ', todoSorted.sortedStatus());
     console.log('sorted dateCreate asc:', todoSorted.sortedDateCreate());
     console.log('sorted dateCreate desc:', todoSorted.sortedDateCreate(-1));
